@@ -5,6 +5,7 @@ import java.net.*;
 
 public class client2 extends Thread {
     //this is for testing
+    //this is for testing too
 }
 
 
