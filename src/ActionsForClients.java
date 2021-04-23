@@ -23,9 +23,9 @@ public class ActionsForClients extends Thread {
 
         try {
 
-            int msg = (Integer)in.readObject();
+            String msg = (String)in.readObject();
             System.out.println("Server: what i got from broker is: "+msg);
-            msg+=10;
+            msg="here is ur "+ msg +"video";
             out.writeObject(msg);
 
             System.out.println("what im sending to the broker is: "+ msg);

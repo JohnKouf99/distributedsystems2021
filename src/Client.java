@@ -6,13 +6,13 @@ import java.net.*;
 
 
 public class Client extends Thread{
-    int a;
+    String a;
     //Socket requestSocket;
     ObjectInputStream in;
     ObjectOutputStream out;
     int port;
 
-    public Client(int a, int port){
+    public Client(String a, int port){
         this.a=a;
         this.port=port;
     }
@@ -65,10 +65,6 @@ public class Client extends Thread{
 
     }
 
-    public static void main(String[] args) {
-        new Client(5, 4321).start();
-        new Client(10,4325).start();
-    }
 
 
 

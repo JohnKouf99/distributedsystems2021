@@ -1,3 +1,5 @@
+import org.bouncycastle.util.IPAddress;
+import java.net.InetAddress;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -16,10 +18,12 @@ public class Broker extends Thread{
     List<Broker> BrokerList = new ArrayList<Broker>();
     int port;
     int srvrport;
+    String hashtag;
 
     public Broker(int port, int srvrport){
         this.port=port;
         this.srvrport=srvrport;
+        BrokerList.add(this);
 
     }
 
@@ -63,6 +67,7 @@ public class Broker extends Thread{
                 ObjectOutputStream objectOutputStream = new ObjectOutputStream(connection.getOutputStream());
                 ObjectInputStream objectInputStream = new ObjectInputStream(connection.getInputStream());
                  this.obj =  objectInputStream.readObject();
+                 this.hashtag = (String) this.obj;
                  System.out.println("Broker: What i got from client is: "+this.obj);
                  this.obj = sendtoserver();
                  objectOutputStream.writeObject(this.obj);
@@ -100,8 +105,8 @@ public class Broker extends Thread{
                 Socket request = new Socket("127.0.0.1",this.srvrport);
                 ObjectOutputStream objectOutputStream = new ObjectOutputStream(request.getOutputStream());
                 ObjectInputStream objectInputStream = new ObjectInputStream(request.getInputStream());
-                System.out.println("Broker: Im sending this to the server: "+ (Integer)this.obj+ " + 2");
-                objectOutputStream.writeObject((Integer)this.obj+2);
+                System.out.println("Broker: Im sending this to the server: "+ this.obj+ " ' ");
+                objectOutputStream.writeObject(this.obj+"'");
                 objectOutputStream.flush();
                 this.obj = objectInputStream.readObject();
                 System.out.println("Broker: the servers response was: "+ this.obj);
@@ -153,6 +158,40 @@ public class Broker extends Thread{
         }
     }
 
+    String getPort(){
+            return String.valueOf(this.port);
+    }
+
+    String getObj(){
+            return String.valueOf(this.obj);
+    }
+
+    String getHashtag(){
+            return this.hashtag;
+    }
+
+    static Integer iptoint(String address){
+        int result = 0;
+        try {
+            InetAddress addr = InetAddress.getByName(address);
+            for (byte b: addr.getAddress())
+            {
+                result = result << 8 | (b & 0xFF);
+            }
+
+            return result;
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+
+
+    }
+
+
+
+
 
 
 
@@ -168,11 +207,25 @@ public class Broker extends Thread{
         Thread br2 = new Broker(4323,4333);
         Thread br3 = new Broker(4325,4334);
        // Thread br2 = new Broker();
+
         br.start();
         br2.start();
         br3.start();
 
-       // br2.start();
+        //testing the hashing of brokers
+       int a = iptoint("127.0.0.1"); //convert ip to int
+       int b = ((Broker) br).port;
+       int d = ((Broker) br2).port;
+       int e = ((Broker) br3).port;
+       int c = a + b; //add ip+port for each broker
+       int f = a+d;
+       int g = a+e;
+        System.out.println("Hash of broker 1 is: "+encryptThisString(String.valueOf(c))); //print hashed result
+        System.out.println("Hash of broker 2 is: "+encryptThisString(String.valueOf(f)));
+        System.out.println("Hash of broker 3 is: "+encryptThisString(String.valueOf(g)));
+
+
+
 
 
     }}
