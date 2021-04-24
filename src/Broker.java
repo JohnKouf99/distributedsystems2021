@@ -10,19 +10,25 @@ import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 public class Broker extends Thread{
+    //Connection stuff
     ServerSocket fromclient=null;
     Object obj;
     Socket connection;
     ObjectInputStream ClientIn;
     ObjectOutputStream ClientOut;
+
+    //broker stuff
     List<Broker> BrokerList = new ArrayList<Broker>();
     int port;
     int srvrport;
+    String brokerhash;
+
     String hashtag;
 
     public Broker(int port, int srvrport){
         this.port=port;
         this.srvrport=srvrport;
+        this.brokerhash = setBrokerHash(this,"127.0.0.1");
         BrokerList.add(this);
 
     }
@@ -31,6 +37,8 @@ public class Broker extends Thread{
 
     public void run(){
         acceptfromclient();
+
+
 
     }
 /**
@@ -78,6 +86,7 @@ public class Broker extends Thread{
                  connection.close();
 
 
+
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -86,6 +95,7 @@ public class Broker extends Thread{
         }
         finally {
             try {
+
                 fromclient.close();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -170,6 +180,25 @@ public class Broker extends Thread{
             return this.hashtag;
     }
 
+    void setHashtag(String hashtag){this.hashtag=hashtag;}
+
+    String getBrokerhash(){return this.brokerhash;}
+
+    String setBrokerHash(Object br, String addr){
+        int a = iptoint(addr);
+        int b = ((Broker) br).port;
+        int c = a+b;
+
+        return encryptThisString(String.valueOf(c));
+
+    }
+
+
+
+
+
+
+
     static Integer iptoint(String address){
         int result = 0;
         try {
@@ -202,6 +231,11 @@ public class Broker extends Thread{
 
 
 
+
+
+
+
+
     public static void main(String[] args) {
         Thread br = new Broker(4321,4333);
         Thread br2 = new Broker(4323,4333);
@@ -212,17 +246,11 @@ public class Broker extends Thread{
         br2.start();
         br3.start();
 
-        //testing the hashing of brokers
-       int a = iptoint("127.0.0.1"); //convert ip to int
-       int b = ((Broker) br).port;
-       int d = ((Broker) br2).port;
-       int e = ((Broker) br3).port;
-       int c = a + b; //add ip+port for each broker
-       int f = a+d;
-       int g = a+e;
-        System.out.println("Hash of broker 1 is: "+encryptThisString(String.valueOf(c))); //print hashed result
-        System.out.println("Hash of broker 2 is: "+encryptThisString(String.valueOf(f)));
-        System.out.println("Hash of broker 3 is: "+encryptThisString(String.valueOf(g)));
+
+
+        System.out.println(((Broker) br).getBrokerhash());
+
+
 
 
 
