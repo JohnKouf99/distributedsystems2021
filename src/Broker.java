@@ -1,14 +1,16 @@
-import org.bouncycastle.util.IPAddress;
+
 import java.net.InetAddress;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+
 public class Broker extends Thread{
     //Connection stuff
     ServerSocket fromclient=null;
@@ -24,6 +26,9 @@ public class Broker extends Thread{
     String brokerhash;
 
     String hashtag;
+
+    //Server stuff
+    static Server s = new Server();
 
     public Broker(int port, int srvrport){
         this.port=port;
@@ -136,6 +141,14 @@ public class Broker extends Thread{
 
         }
 
+
+
+
+
+
+
+
+
     public static String encryptThisString(String input)
     {
         try {
@@ -184,6 +197,10 @@ public class Broker extends Thread{
 
     String getBrokerhash(){return this.brokerhash;}
 
+    public List<Broker> getBrokerList(){return this.BrokerList;}
+
+
+    //enncryption of IP+Port
     String setBrokerHash(Object br, String addr){
         int a = iptoint(addr);
         int b = ((Broker) br).port;
@@ -198,7 +215,7 @@ public class Broker extends Thread{
 
 
 
-
+    //IP address to integer
     static Integer iptoint(String address){
         int result = 0;
         try {
@@ -238,18 +255,23 @@ public class Broker extends Thread{
 
 
     public static void main(String[] args) {
-        Thread br = new Broker(4321,4333);
-        Thread br2 = new Broker(4323,4333);
-        Thread br3 = new Broker(4325,4334);
+        Thread br = new Broker(4323,4333);
+        Thread br2 = new Broker(4324,4334);
+        Thread br3 = new Broker(4325,4335);
        // Thread br2 = new Broker();
-
+        System.out.println("broker 1 starting...");
         br.start();
+        System.out.println("broker 2 starting...");
         br2.start();
+        System.out.println("broker 3 starting...");
         br3.start();
 
 
 
-        System.out.println(((Broker) br).getBrokerhash());
+        //System.out.println(((Broker) br).getBrokerhash());
+        //System.out.println(Arrays.asList(s.getMap()));
+
+
 
 
 
