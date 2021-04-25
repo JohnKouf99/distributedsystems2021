@@ -21,7 +21,7 @@ static Server s = new Server();
     public static void main(String[] args) {
 
          new Client("#pets",4323).start();
-        new Client("#GayPorn",4324).start();
+        new Client("#food",4324).start();
 
         System.out.println("server1");
         new Server(4333,"a","b","c").start();
