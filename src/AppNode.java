@@ -29,7 +29,7 @@ static Server s = new Server();
         new Server(4334,"aa","bb","cc").start();
         System.out.println("server3");
         new Server(4335,"aaa","bbb","ccc").start();
-        System.out.println("skata");
+
         //Server s = new Server();
         System.out.println(Arrays.asList(s.getMap()));
 
