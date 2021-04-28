@@ -127,7 +127,7 @@ public class VideoFile {
         v.associatedHashtags.add("#nature");
         v.associatedHashtags.add("#space");*/
 
-        v.SplitToChunks("EarthExample.mp4");
+        v.SplitToChunks("mp4files/EarthExample.mp4");
         System.out.println(v.ChunksList.size());
 
 
