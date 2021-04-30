@@ -1,5 +1,7 @@
 
 
 public class Value {
-    //VideoFile videoFile;
+    VideoFile videoFile;
+
+
 }
