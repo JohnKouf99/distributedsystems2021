@@ -32,12 +32,17 @@ public class VideoFile {
     private String framerate;
     private String frameWidth;
     private String frameHeight;
+    private String file;
     ArrayList<String> associatedHashtags = new ArrayList<>();
     private static final int  KILOBYTE = 1024*100;
     byte[] videoFileChunk = new byte[KILOBYTE];
     ArrayList<byte[]> ChunksList = new ArrayList<byte[]>();
 
 
+    public VideoFile(String file) throws TikaException, SAXException, IOException {
+        this.file = file;
+        this.getData();
+    }
 
 
 
@@ -46,16 +51,16 @@ public class VideoFile {
 
 
 //extract video info such as name,date etc
-    void getData(String file) throws IOException,SAXException, TikaException {
+    void getData() throws IOException,SAXException, TikaException {
 
         BodyContentHandler handler = new BodyContentHandler();
         Metadata metadata = new Metadata();
-        FileInputStream inputstream = new FileInputStream(new File(file));
+        FileInputStream inputstream = new FileInputStream(new File(this.file));
         ParseContext pcontext = new ParseContext();
 
         MP4Parser MP4Parser = new MP4Parser();
         MP4Parser.parse(inputstream, handler, metadata,pcontext);
-        //System.out.println("Document Content  :" + handler.toString());
+        System.out.println("Document Content  :" + handler.toString());
 
         System.out.println("Document Metadata :");
         String[] metadataNames = metadata.names();
@@ -82,10 +87,9 @@ public class VideoFile {
 
 
 //this method splits a video to byte arrays and then adds the arrays to a list
-    void SplitToChunks(String file) throws IOException{
-        File f = new File(file);
+    void SplitToChunks() throws IOException{
+        File f = new File(this.file);
         FileInputStream inputstream = new FileInputStream(f);
-        System.out.println(f.length());
         int n = 0;
 
         while ( n != -1){
@@ -95,23 +99,47 @@ public class VideoFile {
         }
         inputstream.close();
 
-
-
-
-
-
-
-
-
     }
 
 
+    public String getDateCreated() {
+        return dateCreated;
+    }
 
+    public String getChannelName() {
+        return channelName;
+    }
 
+    public String getFrameHeight() {
+        return frameHeight;
+    }
 
+    public String getFrameWidth() {
+        return frameWidth;
+    }
+
+    public String getFramerate() {
+        return framerate;
+    }
+
+    public String getLength() {
+        return length;
+    }
+
+    public String getVideoName() {
+        return videoName;
+    }
+
+    public String getFile() {
+        return file;
+    }
+
+    public ArrayList<byte[]> getChunksList() {
+        return ChunksList;
+    }
 
     public static void main(String[] args) throws IOException,SAXException, TikaException {
-        VideoFile v = new VideoFile();
+        VideoFile v = new VideoFile("mp4files/EarthExample.mp4");
 
         //this is for testing
 /**
@@ -125,10 +153,10 @@ public class VideoFile {
         System.out.println(v.videoName);
         v.associatedHashtags.add("#earth");
         v.associatedHashtags.add("#nature");
-        v.associatedHashtags.add("#space");*/
+        v.associatedHashtags.add("#space");
 
-        v.SplitToChunks("mp4files/EarthExample.mp4");
-        System.out.println(v.ChunksList.size());
+        v.SplitToChunks();
+        System.out.println(v.ChunksList.size());*/
 
 
 
