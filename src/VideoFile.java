@@ -39,9 +39,18 @@ public class VideoFile {
     ArrayList<byte[]> ChunksList = new ArrayList<byte[]>();
 
 
-    public VideoFile(String file) throws TikaException, SAXException, IOException {
+    public VideoFile(String file)  {
         this.file = file;
-        this.getData();
+        try {
+            this.getData(); // we set the variables for each video
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (SAXException e) {
+            e.printStackTrace();
+        } catch (TikaException e) {
+            e.printStackTrace();
+        }
     }
 
 
