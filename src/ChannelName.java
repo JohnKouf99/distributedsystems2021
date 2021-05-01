@@ -27,7 +27,7 @@ public class ChannelName {
 
 // we initialize the channels videos and hashtags
     public HashMap setUsersVideoFilesMap() {
-        //if the chanell name is John Pap, set these videos to be on his channel, with the appropriate hashtags
+        //if the channel name is John, set these videos to be on his channel, with the appropriate hashtags
         if(this.channelName=="John"){
         ArrayList<VideoFile> NatureVideos = new ArrayList<>();
         ArrayList<VideoFile> CityVideos = new ArrayList<>();
@@ -52,6 +52,7 @@ public class ChannelName {
 
         return this.usersVideoFilesMap;}
 
+        //we do the same with two other channells too
         if(this.channelName=="Nikolas"){return null;} //TO DO
         if(this.channelName=="Euthimis"){return null;} //TO DO
 
