@@ -6,7 +6,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import java.io.InputStream;
 import java.util.ArrayList;
-
+import java.lang.StringBuilder;
 import org.apache.tika.Tika;
 import org.apache.tika.detect.DefaultDetector;
 import org.apache.tika.detect.Detector;
@@ -69,25 +69,33 @@ public class VideoFile {
 
         MP4Parser MP4Parser = new MP4Parser();
         MP4Parser.parse(inputstream, handler, metadata,pcontext);
-        System.out.println("Document Content  :" + handler.toString());
+        //System.out.println("Document Content  :" + handler.toString());
 
-        System.out.println("Document Metadata :");
+        //System.out.println("Document Metadata :");
         String[] metadataNames = metadata.names();
 
         this.videoName = FilenameUtils.removeExtension(file);
+        associatedHashtags.add(this.videoName);
 
         for(String name : metadataNames) {
-            System.out.println(name + ": " + metadata.get(name));
-            if(name=="tiff:ImageLength")
+            //System.out.println(name + ": " + metadata.get(name));
+
+            if(name=="tiff:ImageLength"){
                 this.frameHeight = metadata.get(name);
-            if(name=="tiff:ImageWidth")
+                associatedHashtags.add("Height: "+this.frameHeight);}
+            if(name=="tiff:ImageWidth"){
                 this.frameWidth = metadata.get(name);
-            if(name=="Creation-Date")
+            associatedHashtags.add("Width: "+this.frameWidth);}
+            if(name=="Creation-Date"){
                 this.dateCreated = metadata.get(name);
-            if(name=="xmpDM:duration")
+                associatedHashtags.add("Date: "+this.dateCreated.substring(0,9));
+                System.out.println(this.dateCreated.substring(0,10));}
+            if(name=="xmpDM:duration"){
                 this.length = metadata.get(name);
-            if(name=="xmpDM:audioSampleRate")
+                associatedHashtags.add("Length: "+this.length);}
+            if(name=="xmpDM:audioSampleRate"){
                 this.framerate=metadata.get(name);
+                associatedHashtags.add("Framerate: "+this.framerate);}
 
         }
 
@@ -111,12 +119,19 @@ public class VideoFile {
     }
 
 
+
+
     public String getDateCreated() {
         return dateCreated;
     }
 
     public String getChannelName() {
         return channelName;
+    }
+
+    public void setChannelName(String channelName) {
+        this.channelName = channelName;
+        associatedHashtags.add(channelName);
     }
 
     public String getFrameHeight() {
@@ -143,12 +158,17 @@ public class VideoFile {
         return file;
     }
 
+    public ArrayList<String> getAssociatedHashtags() {
+        return associatedHashtags;
+    }
+
     public ArrayList<byte[]> getChunksList() {
         return ChunksList;
     }
 
     public static void main(String[] args) throws IOException,SAXException, TikaException {
         VideoFile v = new VideoFile("mp4files/EarthExample.mp4");
+
 
         //this is for testing
 /**

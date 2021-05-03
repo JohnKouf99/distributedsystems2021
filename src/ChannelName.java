@@ -1,3 +1,4 @@
+import org.apache.poi.ss.formula.functions.Na;
 import org.apache.tika.exception.TikaException;
 import org.xml.sax.SAXException;
 
@@ -15,15 +16,49 @@ public class ChannelName {
 //we create a random chanel named John Pap
     public ChannelName(String channelName){
 
-        if(channelName=="John pap"){
-        this.channelName = channelName;
-        this.usersVideoFilesMap = setUsersVideoFilesMap();
+        if(channelName=="John"){
+             this.channelName = channelName;
+             this.usersVideoFilesMap = setUsersVideoFilesMap();
 
-        this.hashtagsPublished.add("#nature");
-        this.hashtagsPublished.add("#earth");
+             this.hashtagsPublished.add("#nature");
+             this.hashtagsPublished.add("#city");
+             this.hashtagsPublished.add("#sea");
 
 
-    }}
+    }
+
+
+        if(channelName=="Nikolas"){
+            this.channelName = channelName;
+            this.usersVideoFilesMap = setUsersVideoFilesMap();
+
+            this.hashtagsPublished.add("#city");
+            this.hashtagsPublished.add("#sea");
+
+        }
+
+
+
+        if(channelName=="Euthimis"){
+            this.channelName = channelName;
+            this.usersVideoFilesMap = setUsersVideoFilesMap();
+
+            this.hashtagsPublished.add("#nature");
+            this.hashtagsPublished.add("#sea");
+
+        }
+
+
+
+
+
+
+
+
+
+
+
+    }
 
 // we initialize the channels videos and hashtags
     public HashMap setUsersVideoFilesMap() {
@@ -33,10 +68,10 @@ public class ChannelName {
         ArrayList<VideoFile> CityVideos = new ArrayList<>();
         ArrayList<VideoFile> SeaVideos = new ArrayList<>();
 
-        NatureVideos.add(new VideoFile("mp4/EarthExample"));
-        NatureVideos.add(new VideoFile("mp4/BeachExample"));
-        SeaVideos.add(new VideoFile("mp4/BeachExample"));
-        CityVideos.add(new VideoFile("mp4/TrafficExample"));
+        NatureVideos.add(new VideoFile("mp4/EarthExample.mp4"));
+        NatureVideos.add(new VideoFile("mp4/BeachExample.mp4"));
+        SeaVideos.add(new VideoFile("mp4/BeachExample.mp4"));
+        CityVideos.add(new VideoFile("mp4/TrafficExample.mp4"));
 
         //we associate hashtags with the video list
         this.usersVideoFilesMap.put("#nature", NatureVideos) ;
@@ -53,8 +88,45 @@ public class ChannelName {
         return this.usersVideoFilesMap;}
 
         //we do the same with two other channells too
-        if(this.channelName=="Nikolas"){return null;} //TO DO
-        if(this.channelName=="Euthimis"){return null;} //TO DO
+        if(this.channelName=="Nikolas"){
+            ArrayList<VideoFile> CityVideos = new ArrayList<>();
+            ArrayList<VideoFile> SeaVideos = new ArrayList<>();
+
+
+            SeaVideos.add(new VideoFile("mp4files/SeaVideo.mp4"));
+            CityVideos.add(new VideoFile("mp4files/EmeraldCity.mp4"));
+            CityVideos.add(new VideoFile("mp4files/TrafficExample.mp4"));
+
+            //we associate hashtags with the video list
+            this.usersVideoFilesMap.put("#city", CityVideos);
+            this.usersVideoFilesMap.put("#sea", SeaVideos);
+            //we also associate channelName with video list
+            this.usersVideoFilesMap.put(this.channelName, CityVideos);
+            this.usersVideoFilesMap.put(this.channelName, SeaVideos);
+
+            return this.usersVideoFilesMap;
+
+
+        }
+
+
+
+        if(this.channelName=="Euthimis"){
+            ArrayList<VideoFile> NatureVideos = new ArrayList<>();
+            ArrayList<VideoFile> SeaVideos = new ArrayList<>();
+
+            NatureVideos.add(new VideoFile("mp4files/EarthExample.mp4"));
+            NatureVideos.add(new VideoFile("mp4files/WaterfallVideo.mp4"));
+            SeaVideos.add(new VideoFile("mp4files/WaterfallVideo.mp4"));
+            SeaVideos.add(new VideoFile("mp4files/BeachExample.mp4"));
+            SeaVideos.add(new VideoFile("mp4files/SeaVideo.mp4"));
+
+            this.usersVideoFilesMap.put(this.channelName, NatureVideos);
+            this.usersVideoFilesMap.put(this.channelName, SeaVideos);
+
+            return this.usersVideoFilesMap;
+
+        }
 
         else return null;
     }

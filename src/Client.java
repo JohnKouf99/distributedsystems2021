@@ -11,10 +11,12 @@ public class Client extends Thread{
     ObjectInputStream in;
     ObjectOutputStream out;
     int port;
+    VideoFile value;
 
     public Client(String a, int port){
         this.a=a;
         this.port=port;
+
     }
 
 
@@ -58,12 +60,51 @@ public class Client extends Thread{
     }
 
 
+    void acceptpull(){
 
-   public void run(){
-        connect();
+       Socket connection=null;
+        int counter=0;
+        try{
+            ServerSocket srvrSocket = new ServerSocket(this.port,10);
+            connection = srvrSocket.accept();
+
+            ObjectOutputStream out = new ObjectOutputStream(connection.getOutputStream());
+            ObjectInputStream in = new ObjectInputStream(connection.getInputStream());
+
+            while (in.readObject()!=null){
+
+                System.out.println(counter++);
+
+            }
 
 
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
     }
+
+
+
+
+
+
+
+
+   public void run() {
+        //connect();
+
+           acceptpull();
+
+
+
+   }
+
+    public static void main(String[] args) {
+        new Client("#pets",4323).start();
+    }
+
 
 
 
