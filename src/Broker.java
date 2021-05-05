@@ -22,10 +22,13 @@ public class Broker extends Thread{
     ObjectOutputStream ClientOut;
 
     //broker stuff
-    List<Broker> BrokerList = new ArrayList<Broker>();
+    static List<Broker> BrokerList = new ArrayList<Broker>();
     int port; //client-broker communication
     int srvrport; //broker - server communication
     String brokerhash;
+    InetAddress addr;
+    int brokerID;
+
 
     Queue<VideoFile> values = new LinkedList<>();
 
@@ -41,16 +44,23 @@ public class Broker extends Thread{
 
     //Server stuff
     //static Server s = new Server();
-    //public static HashMap<String , Integer> brokermap = new HashMap<>();
+    public static HashMap<String , Integer> ServerPortmap = new HashMap<>(); //tag->server port hashmap
      Queue<byte[]> queue = new LinkedList<>();
      ArrayList<Queue<byte[]> > QueueList = new ArrayList<>();
-     Map<String, ArrayList<Queue<byte[]> >> multimap = new HashMap<>();
+     Map<String, ArrayList<Queue<byte[]> >> multimap = new HashMap<>();  //tag -> video hashmap
+
 
 
     public Broker(int port, int srvrport){
+        try {
+            this.addr = InetAddress.getByName("127.0.0.1");
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+        this.brokerID=addBrokerValues(this.port, this.addr.getHostAddress()); //brokerID= IP + Port
         this.port=port;
         this.srvrport=srvrport;
-        this.brokerhash = setBrokerHash(this,"127.0.0.1");
+        this.brokerhash = encryptThisString(String.valueOf(addBrokerValues(this.port, "127.0.0.1"))); //IP+Port hashing
         BrokerList.add(this);
 
     }
@@ -60,8 +70,7 @@ public class Broker extends Thread{
     public void run(){
       //  getInfo();
 
-        acceptpush();
-        pull("#nature");
+       notifyBrokersOnChanges();
 
 
     }
@@ -97,6 +106,50 @@ public class Broker extends Thread{
 
 
     }
+
+//method in which we initialize the port map
+    void notifyBrokersOnChanges(){
+        HashMap temp;
+        try {
+            fromclient = new ServerSocket(this.srvrport,10);
+            connection = fromclient.accept();
+            ObjectOutputStream out = new ObjectOutputStream(connection.getOutputStream());
+            ObjectInputStream in = new ObjectInputStream(connection.getInputStream());
+            temp = (HashMap) in.readObject();
+
+            for (Object key : temp.keySet()) {
+                this.ServerPortmap.put((String)key, (Integer)temp.get(key));
+
+            }
+
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        finally {
+            try {
+                for (String name: ServerPortmap.keySet()) {
+                    String key = name.toString();
+                    String value = ServerPortmap.get(name).toString();
+                    System.out.println(key + " " + value);
+                }
+                fromclient.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+
+    }
+
+    //this method sends the info that the client has requested
+    void sendInfo(){
+
+    }
+
+
 
 
 
@@ -252,70 +305,6 @@ public class Broker extends Thread{
 
 
 
-
-
-
-
-        /**
-        void getInfo(){
-
-            ObjectInputStream serverinputstream=null;
-            ObjectOutputStream serveroutstream = null;
-            Socket infoconnection=null;
-
-        try{
-             serverinfo = new ServerSocket(4100,10);
-
-           while(true){
-               infoconnection = serverinfo.accept();
-               serveroutstream = new ObjectOutputStream(infoconnection.getOutputStream());
-               serverinputstream = new ObjectInputStream(infoconnection.getInputStream());
-               //String test = (String) serverinputstream.readObject();
-               //System.out.println(test);
-               this.brokermap = (HashMap<String, Integer>) serverinputstream.readObject();
-               serverinputstream.close();
-               serveroutstream.close();
-               infoconnection.close();
-               System.out.println(Arrays.asList(brokermap));
-
-           }
-
-
-
-
-
-
-        }
-
-
-
-        catch (UnknownHostException unknownHost) {
-            System.err.println("You are trying to connect to an unknown host server!");
-        } catch (IOException ioException) {
-            ioException.printStackTrace();} catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-
-        finally {
-            try {
-
-                if(serverinfo!=null) serverinfo.close();
-            } catch (IOException ioException) {
-                ioException.printStackTrace();
-            }
-        }
-
-        }
-        */
-
-
-
-
-
-
-
-
-
     public static String encryptThisString(String input)
     {
         try {
@@ -373,13 +362,13 @@ public class Broker extends Thread{
     public List<Broker> getBrokerList(){return this.BrokerList;}
 
 
-    //enncryption of IP+Port
-    String setBrokerHash(Object br, String addr){
+    // IP+Port calculation
+    Integer addBrokerValues(int port, String addr){
         int a = iptoint(addr);
-        int b = ((Broker) br).port;
+        int b = this.port;
         int c = a+b;
 
-        return encryptThisString(String.valueOf(c));
+        return c;
 
     }
 

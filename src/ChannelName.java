@@ -3,6 +3,7 @@ import org.apache.tika.exception.TikaException;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -10,12 +11,12 @@ import java.util.List;
 public class ChannelName {
     String channelName;
     List<String> hashtagsPublished = new ArrayList<String>();
-    HashMap usersVideoFilesMap ;
+    HashMap<String, ArrayList<VideoFile>> usersVideoFilesMap;
 
 
 //we create a random chanel named John Pap
     public ChannelName(String channelName){
-
+        usersVideoFilesMap = new HashMap<>();
         if(channelName=="John"){
              this.channelName = channelName;
              this.usersVideoFilesMap = setUsersVideoFilesMap();
@@ -68,10 +69,10 @@ public class ChannelName {
         ArrayList<VideoFile> CityVideos = new ArrayList<>();
         ArrayList<VideoFile> SeaVideos = new ArrayList<>();
 
-        NatureVideos.add(new VideoFile("mp4/EarthExample.mp4"));
-        NatureVideos.add(new VideoFile("mp4/BeachExample.mp4"));
-        SeaVideos.add(new VideoFile("mp4/BeachExample.mp4"));
-        CityVideos.add(new VideoFile("mp4/TrafficExample.mp4"));
+        NatureVideos.add(new VideoFile("mp4files/EarthExample.mp4"));
+        NatureVideos.add(new VideoFile("mp4files/BeachExample.mp4"));
+        SeaVideos.add(new VideoFile("mp4files/BeachExample.mp4"));
+        CityVideos.add(new VideoFile("mp4files/TrafficExample.mp4"));
 
         //we associate hashtags with the video list
         this.usersVideoFilesMap.put("#nature", NatureVideos) ;
@@ -133,7 +134,16 @@ public class ChannelName {
 
 
 
-//this is for testing
+
+    public String getChannelName() {
+        return channelName;
+    }
+
+    public HashMap getUsersVideoFilesMap() {
+        return usersVideoFilesMap;
+    }
+
+    //this is for testing
     public static void main(String[] args) {
 
         ChannelName channel = new ChannelName("John");
