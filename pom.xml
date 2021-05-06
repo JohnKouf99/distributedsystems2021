@@ -32,6 +32,12 @@
             <version>1.26</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.javatuples</groupId>
+            <artifactId>javatuples</artifactId>
+            <version>1.2</version>
+        </dependency>
+
     </dependencies>
     
 </project>

@@ -276,7 +276,7 @@ public class Server extends Thread{
 
 
     }
-
+    // this method sends to the broker a video with a specific tag or channelname
     void push(String tag1, VideoFile value) throws IOException {
 
         Socket requestSocket=null;

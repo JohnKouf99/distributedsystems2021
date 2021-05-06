@@ -23,6 +23,8 @@ public class Broker extends Thread{
 
     //broker stuff
     static List<Broker> BrokerList = new ArrayList<Broker>();
+    static List<String> BrokerHashes =new ArrayList<>();
+    static HashMap<String, Broker> BrokerHashesMap = new HashMap<>();
     int port; //client-broker communication
     int srvrport; //broker - server communication
     String brokerhash;
@@ -37,7 +39,8 @@ public class Broker extends Thread{
     //client stuff
     String hashtag;
     List<String> hashtagList = new ArrayList<String>();
-    List<ChannelName> channels = new ArrayList<>();
+    List<String> channelList = new ArrayList<>();
+    HashMap<Integer,Integer> info = new HashMap<>();
 
 
 
@@ -61,6 +64,8 @@ public class Broker extends Thread{
         this.port=port;
         this.srvrport=srvrport;
         this.brokerhash = encryptThisString(String.valueOf(addBrokerValues(this.port, "127.0.0.1"))); //IP+Port hashing
+        BrokerHashes.add(this.brokerhash);
+        BrokerHashesMap.put(this.brokerhash, this);
         BrokerList.add(this);
 
     }
@@ -68,7 +73,7 @@ public class Broker extends Thread{
 
 
     public void run(){
-      //  getInfo();
+
 
        notifyBrokersOnChanges();
 
@@ -130,11 +135,11 @@ public class Broker extends Thread{
         }
         finally {
             try {
-                for (String name: ServerPortmap.keySet()) {
+               /**for (String name: ServerPortmap.keySet()) {
                     String key = name.toString();
                     String value = ServerPortmap.get(name).toString();
                     System.out.println(key + " " + value);
-                }
+                }*/
                 fromclient.close();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -146,6 +151,18 @@ public class Broker extends Thread{
 
     //this method sends the info that the client has requested
     void sendInfo(){
+
+
+        try {
+            ObjectOutputStream out = new ObjectOutputStream(connection.getOutputStream());
+            ObjectInputStream in = new ObjectInputStream(connection.getInputStream());
+            for(Object br : BrokerList){
+               // info
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
     }
 
@@ -247,16 +264,18 @@ public class Broker extends Thread{
                 int size  = (Integer) objectInputStream.readInt();
 
 
+
+
                 if(size!=0){
 
 
                 System.out.println(size);
 
-
+                //store the video to queue
                 for(int i=0; i<size; i++){
                     queue.add((byte[]) objectInputStream.readObject());
                 }
-
+                //add queue to queue list
                 if(multimap.get(tag)!=null)
                     multimap.get(tag).add(queue);
 
@@ -264,6 +283,15 @@ public class Broker extends Thread{
                     QueueList.add(queue);
                     multimap.put(tag, QueueList);
                 }
+
+
+                if(tag.contains("#") && !hashtagList.contains(tag)){
+                    hashtagList.add(tag);
+                }
+
+                if(!tag.contains("#")&& !channelList.contains(tag))
+                    channelList.add(tag);
+
 
                     // this is for testing
                    // System.out.println(multimap.get(tag).get(0).size());
@@ -349,6 +377,10 @@ public class Broker extends Thread{
             return this.hashtag;
     }
 
+    public List<String> getHashtagList() {
+        return hashtagList;
+    }
+
     public Map<String, ArrayList<Queue<byte[]>>> getMultimap() {
         System.out.println(multimap.get("#nature"));
         return multimap;
@@ -358,6 +390,10 @@ public class Broker extends Thread{
     void setHashtag(String hashtag){this.hashtag=hashtag;}
 
     String getBrokerhash(){return this.brokerhash;}
+
+    public static List<String> getBrokerHashes() {
+        return BrokerHashes;
+    }
 
     public List<Broker> getBrokerList(){return this.BrokerList;}
 
@@ -399,7 +435,40 @@ public class Broker extends Thread{
 
 
 
+    void CalculateKeys(){
 
+        //we start from the biggest hash
+        BrokerHashes.sort(Comparator.naturalOrder());
+        Collections.reverse(BrokerHashes);
+
+        for(String keys: ServerPortmap.keySet()){
+            //for each hashed tag
+            String hashedkey = encryptThisString(keys);
+            if(hashedkey.compareTo(BrokerHashes.get(0))>0){ //if hash is bigger than biggest hash
+                Broker br = BrokerHashesMap.get(BrokerHashes.get(2)); //we find the broker with the smallest hash
+                br.getHashtagList().add(hashedkey); //and add the hashtag to it
+            }
+
+            else if(hashedkey.compareTo(BrokerHashes.get(0))<0 && hashedkey.compareTo(BrokerHashes.get(1))>0){ //add to the bigger broker
+                Broker br = BrokerHashesMap.get(BrokerHashes.get(0));
+                br.getHashtagList().add(hashedkey);
+            }
+
+            else if(hashedkey.compareTo(BrokerHashes.get(1))<0 && hashedkey.compareTo(BrokerHashes.get(2))>0){ //add to the second bigger broker
+                Broker br = BrokerHashesMap.get(BrokerHashes.get(1));
+                br.getHashtagList().add(hashedkey);
+            }
+
+            else {
+                Broker br = BrokerHashesMap.get(BrokerHashes.get(2)); //add to the last broker
+                br.getHashtagList().add(hashedkey);
+            }
+
+
+
+
+        }
+    }
 
 
 
@@ -417,14 +486,16 @@ public class Broker extends Thread{
 
 
     public static void main(String[] args) {
-        Thread br = new Broker(4323,4333);
-       // Thread br2 = new Broker(4324,4334);
-       // Thread br3 = new Broker(4325,4335);
+        Thread br = new Broker(4222,4333);
+        Thread br2 = new Broker(4223,4334);
+        Thread br3 = new Broker(4224,4335);
        // Thread br2 = new Broker();
 
 
         System.out.println("broker 1 starting...");
         br.start();
+
+
 
 
        // System.out.println("broker 2 starting...");
