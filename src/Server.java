@@ -20,8 +20,13 @@ public class Server extends Thread{
     VideoFile value;
     List<String> hashtags = new ArrayList<>();
     public static HashMap <String , Integer> Portmap = new HashMap<>(); // contains (hashtag , serverport) pairs
+    public static HashMap <String , Integer> BrokerPortMap = new HashMap<>(); // contains (hashtag , serverport) pairs
+    static int servers=0;
+
     ChannelName channel;
-    HashMap<String, ArrayList<VideoFile>> VideoMap; //contains (key, value) map
+    HashMap<String, ArrayList<VideoFile>> VideoMap; //contains (key, video) map
+
+    boolean CLOSED = false;
 
 
 
@@ -53,6 +58,8 @@ public class Server extends Thread{
             Portmap.put(key,this.port);
         }
     }
+
+        servers++;
         }
 
 
@@ -62,6 +69,9 @@ public class Server extends Thread{
         }
 
 
+    public static HashMap<String, Integer> getBrokerPortMap() {
+        return BrokerPortMap;
+    }
 
     //adds new video to channel
     public HashMap addVideo(String tag, VideoFile value){
@@ -113,21 +123,23 @@ public class Server extends Thread{
 
 
             try{
+
                      requestSocket = new Socket("127.0.0.1",this.port);
                      out = new ObjectOutputStream(requestSocket.getOutputStream());
                      in = new ObjectInputStream(requestSocket.getInputStream());
 
 
                      //if tag=null we just send the portmap with no changes
-                    if(tag==null){
+                    if(tag==null && servers==3){
+
                         out.writeObject(this.Portmap);
                         out.flush();
 
                     }
 
 
-                    //if there is video for this certain key
-                    if(VideoMap.containsKey(tag) && tag!=null){
+                    //if there is video for this certain key and all servers are open
+                    else if(VideoMap.containsKey(tag) && tag!=null && servers==3){
 
                     Portmap.put(tag, this.port);
                     out.writeObject(this.Portmap);
@@ -135,13 +147,18 @@ public class Server extends Thread{
 
 
                     //if it is removed
-                    else {
+                    else if( servers==3) {
+
                         Portmap.remove(tag);
                         out.writeObject(this.Portmap);
                         out.flush();
 
 
                     }
+
+                    else return;
+
+
 
 
 
@@ -212,8 +229,13 @@ public class Server extends Thread{
 
     public void run(){
        // notifyBrokers();
-        //openServer();
+
+
+
         notifyBrokers(null);
+        //openServer();
+
+
 
         /**try {
             push("#nature", this.value);
@@ -235,20 +257,12 @@ public class Server extends Thread{
             while(true){
 
                 connection = srvrSocket.accept();
-                System.out.println("Server: server accepted connection");
-                serveroutstream = new ObjectOutputStream(connection.getOutputStream());
-                serverinputstream = new ObjectInputStream(connection.getInputStream());
-               // System.out.println("Server: sending map....");
-               // serveroutstream.writeObject(getMap());
-                //System.out.println(Arrays.asList(getMap()));
-                String msg = (String)serverinputstream.readObject();
-                System.out.println("Server: what i got from broker is: "+msg);
-                msg="here is ur "+ msg +"video";
-                serveroutstream.writeObject(msg);
+
+                //serveroutstream = new ObjectOutputStream(connection.getOutputStream());
+                //serverinputstream = new ObjectInputStream(connection.getInputStream());
 
 
-                System.out.println("what im sending to the broker is: "+ msg);
-                serveroutstream.flush();
+                //serveroutstream.flush();
 
 
                 serverinputstream.close();
@@ -263,9 +277,7 @@ public class Server extends Thread{
         catch (UnknownHostException unknownHost) {
             System.err.println("You are trying to connect to an unknown host server!");
         } catch (IOException ioException) {
-            ioException.printStackTrace();} catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        } finally {
+            ioException.printStackTrace();}  finally {
             try {
 
                 srvrSocket.close();
@@ -293,6 +305,11 @@ public class Server extends Thread{
             //objectOutputStream.flush();
             //objectOutputStream.writeObject(tag2);
             //objectOutputStream.writeObject(tag3);
+
+            if(!VideoMap.containsKey(tag1)){
+                System.out.println("Video does not exist");
+                return;
+            }
 
             if(value!=null){
                 //System.out.println("test");
@@ -336,6 +353,10 @@ public class Server extends Thread{
 
        // System.out.println("server1");
         new Server(4333,"John", null).start();
+        new Server(4334,"Nikolas", null).start();
+        new Server(4335,"Euthimis", null).start();
+
+
 
         //System.out.println("server2");
         //new Server(4334,"aa","bb","cc").start();

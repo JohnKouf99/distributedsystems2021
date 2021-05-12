@@ -88,8 +88,9 @@ public class VideoFile {
             associatedHashtags.add("Width: "+this.frameWidth);}
             if(name=="Creation-Date"){
                 this.dateCreated = metadata.get(name);
-                associatedHashtags.add("Date: "+this.dateCreated.substring(0,9));
-                System.out.println(this.dateCreated.substring(0,10));}
+                associatedHashtags.add("Date: "+this.dateCreated.substring(0,10));
+               // System.out.println(this.dateCreated.substring(0,10));
+                }
             if(name=="xmpDM:duration"){
                 this.length = metadata.get(name);
                 associatedHashtags.add("Length: "+this.length);}
