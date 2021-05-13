@@ -85,7 +85,7 @@ public class Broker extends Thread {
 
         SendInfoToClient();
 
-        acceptConnection();
+        //acceptConnection();
 
 
 
@@ -141,7 +141,7 @@ public class Broker extends Thread {
 
                     if(tag.contains("#") && !hashtagList.contains(tag)){
                         hashtagList.add(tag);
-                    }
+                }
 
                     if(!tag.contains("#")&& !channelList.contains(tag))
                         channelList.add(tag);
@@ -213,14 +213,15 @@ public class Broker extends Thread {
 
     }
 
-//method in which we initialize the port map
-void notifyBrokersOnChanges(){
+//method in which we initialize the port map(tag->server structure)
+ void notifyBrokersOnChanges(){
     HashMap temp;
     try {
         fromclient = new ServerSocket(this.srvrport,10);
         connection = fromclient.accept();
         ObjectOutputStream out = new ObjectOutputStream(connection.getOutputStream());
         ObjectInputStream in = new ObjectInputStream(connection.getInputStream());
+
         temp = (HashMap) in.readObject();
 
         for (Object key : temp.keySet()) {
@@ -262,24 +263,31 @@ void notifyBrokersOnChanges(){
 
 }
 
-        void SendInfoToClient(){
+         void SendInfoToClient(){
+
+             ObjectOutputStream objectOutputStream=null;
+             ObjectInputStream objectInputStream=null;
 
         try{
 
             fromclient = new ServerSocket(this.port,10);
-
-            List <List<Object>> BrokerInfo = new ArrayList<>();
 
 
 
             while (true){
 
                  this.connection = fromclient.accept();
+                List <List<Object>> BrokerInfo = new ArrayList<>();
+                objectOutputStream = new ObjectOutputStream(connection.getOutputStream());
+                objectInputStream = new ObjectInputStream(connection.getInputStream());
+                Object obj=objectInputStream.readObject();
 
-                ObjectOutputStream objectOutputStream = new ObjectOutputStream(connection.getOutputStream());
-                ObjectInputStream objectInputStream = new ObjectInputStream(connection.getInputStream());
+
+                 if(obj.toString().equals("info")){  //if we want the broker to send just info about its tags
+
 
                 if(getBrokerList().size()==3){
+                    System.out.println(getBrokerList().size());
                 for(Broker br: getBrokerList() ){
                     List <Object> info = new ArrayList<>();
                     info.add(br.addr);
@@ -289,31 +297,76 @@ void notifyBrokersOnChanges(){
                     info.add(br.getHashtagList());
                     BrokerInfo.add(info);
 
-                }
+                }}
 
                 objectOutputStream.writeObject(BrokerInfo);
                 objectOutputStream.flush();
+                objectOutputStream.writeObject("List sent");
+                objectOutputStream.flush();
                 System.out.println("SIZEEEEEEEEEE: "+BrokerInfo.size());
-                break;
+
+
+
+
+
+
+
+
+
+                 }
+
+
+
+                 if(obj.toString().equals("register")){
+
+                    Object obj2 = objectInputStream.readObject();
+
+                if(obj2 instanceof Client){   //if a client wants to register
+
+                    if (!registeredClients.contains(obj2)) {
+                        registeredClients.add((Client) obj2);
+                    }
+
+                    for(Client cl: registeredClients){
+                        System.out.println("this is: "+cl.channelName);
+                    }
+                    System.out.println("=======================================");
+
+
+
+                }}
+
+
+                System.out.println("closing...");
+                objectOutputStream.close();
+                objectInputStream.close();
+
+
+
+                //break;
 
 
 
                 }
 
 
-
-
-                 objectInputStream.close();
-                 objectOutputStream.close();
-                 connection.close();
+                //System.out.println("closing streams1...");
+                 //objectInputStream.close();
+               // System.out.println("closing streams2...");
+                 //objectOutputStream.close();
+                //System.out.println("closing streams3...");
+                 //connection.close();
 
             }
-        } catch (IOException e) {
+
+            catch (IOException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
         finally {
             try {
-
+                System.out.println("final closing////");
                 fromclient.close();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -321,11 +374,14 @@ void notifyBrokersOnChanges(){
 
 
         }
-
         }
 
+
+
+
+
       //this method accepts client requests and insterts the client to clientList
-        void acceptConnection(){
+        synchronized void acceptConnection(){
         ServerSocket fromclient=null;
         ObjectOutputStream out=null;
         ObjectInputStream in=null;
@@ -333,6 +389,7 @@ void notifyBrokersOnChanges(){
         try{
 
             fromclient = new ServerSocket(this.port,10);
+
             while(true) {
                 connection = fromclient.accept();
                 out = new ObjectOutputStream(connection.getOutputStream());
@@ -340,7 +397,6 @@ void notifyBrokersOnChanges(){
 
 
                 Client client = (Client) in.readObject();
-                System.out.println(client);
                 if (!registeredClients.contains(client)) {
                     registeredClients.add(client);
                 }
@@ -348,10 +404,12 @@ void notifyBrokersOnChanges(){
                 for(Client cl: registeredClients){
                     System.out.println("this is: "+cl.channelName);
                 }
+                System.out.println("=======================================");
 
                 out.close();
                 in.close();
                 connection.close();
+                fromclient.close();
 
 
             }
@@ -361,17 +419,19 @@ void notifyBrokersOnChanges(){
 
 
         } catch (IOException e) {
+
             e.printStackTrace();
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
-        finally {
-            try {
-                fromclient.close();
-            } catch (IOException ioException) {
-                ioException.printStackTrace();
-            }
-        }
+       // finally {
+         //   try {
+                //System.out.println("closing.....");
+                //fromclient.close();
+            //}  catch (IOException ioException) {
+                //ioException.printStackTrace();
+            //}
+        //}
 
 
 
