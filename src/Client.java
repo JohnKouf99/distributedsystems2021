@@ -2,10 +2,7 @@ import org.glassfish.jaxb.runtime.v2.runtime.output.SAXOutput;
 
 import java.io.*;
 import java.net.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.io.Serializable;
 
 
@@ -20,6 +17,8 @@ public class Client extends Thread implements Serializable {
     int port;
     VideoFile value;
     List <List<Object>>  info;
+    Queue<byte[]> queue;// = new LinkedList<>();
+    private ArrayList<Queue<byte[]> > QueueList = new ArrayList<>();
 
     Integer BrokerPorts[] = new Integer[] { 4222, 4223, 4224};
 
@@ -66,8 +65,9 @@ public class Client extends Thread implements Serializable {
 
             if(in.readObject().toString().equals("List sent")){
 
-
+                outerloop:
                 for(List<Object> listt : this.info){
+
                     for(Object item: listt){
 
                         if(item instanceof InetAddress)
@@ -77,12 +77,20 @@ public class Client extends Thread implements Serializable {
                             RealPort = (Integer)item;
                         }
 
-                        if(item.toString().contains(tag))
-                            System.out.println(tag+" is in port: "+RealPort+" and address: "+addr);}}
+                        if(item.toString().contains(tag)){
+                            System.out.println(tag+" is in port: "+RealPort+" and address: "+addr);
+                        break outerloop;}
+
+                    }
+                }
 
 
-                            if(RandomPort==RealPort){
-                                register(addr,RandomPort,this.tag);
+
+                            if(RandomPort!=RealPort){
+                                System.out.println("going to register now");
+                                System.out.println(RealPort);
+                                register(addr,RealPort,this.tag);
+
 
                                 /**
                                 System.out.println("sending my info....");
@@ -91,9 +99,8 @@ public class Client extends Thread implements Serializable {
                             }
 
                             else {
-                                System.out.println("going to register now");
-                                System.out.println(RealPort);
-                                register(addr,RealPort,this.tag);
+                                register(addr,RandomPort,this.tag);
+
                             } }
 
                     }
@@ -162,10 +169,11 @@ public class Client extends Thread implements Serializable {
 
 
 //this method is used for client registry to a specific broker
-      void register(InetAddress addr,int port,String tag){
+      private void register(InetAddress addr,int port,String tag){
+          synchronized (this){
         Socket request2 = null;
 
-
+          System.out.println(Arrays.asList(info.get(0)));
         //ObjectOutputStream out=null;
         //ObjectInputStream in=null;
           System.out.println("im in register now");
@@ -173,7 +181,7 @@ public class Client extends Thread implements Serializable {
 
 
               try{
-                        System.out.println("connecting to the brokern i want");
+                        System.out.println("connecting to the broker i want: "+port);
                         request2 = new Socket("127.0.0.1",port);
                         out = new ObjectOutputStream(request2.getOutputStream());
                         in = new ObjectInputStream(request2.getInputStream());
@@ -182,29 +190,40 @@ public class Client extends Thread implements Serializable {
                         out.writeObject(new Client(this.tag,this.tag2,this.port,this.channelName)); //client registers to the broker that contains the info he needs //ΕΡΡΟΡ
                         System.out.println("sending my info....");
                         out.flush();
+                        if(in.readObject().equals("got consumer info")){
+                            System.out.println("info sent successfully");
+                        }
+
+
+
+
+
+
+
+
 
 
 
 
                     } catch (IOException e) {
                         e.printStackTrace();
-                    }
-
-
-                    finally {
+                    } catch (ClassNotFoundException e) {
+                  e.printStackTrace();
+              } finally {
                         try {
                             System.out.println("closing.... IN REGISTER");
                             in.close();
                             out.close();
                             request2.close();
                             requestSocket.close();
+                            acceptvideo();
                         } catch (IOException ioException) {
                             ioException.printStackTrace();
                         }
                     }
 
 
-                }
+                }}
 
 
 
@@ -218,29 +237,68 @@ public class Client extends Thread implements Serializable {
 
 
 
-    void acceptpull(){
+    private synchronized void acceptvideo(){
+        Socket frombroker=null;
+        ObjectOutputStream out=null;
+        ObjectInputStream in = null;
+        ServerSocket serverSocket=null;
 
-       Socket connection=null;
-        int counter=0;
+
         try{
-            ServerSocket srvrSocket = new ServerSocket(4223,10);
-            connection = srvrSocket.accept();
+            serverSocket = new ServerSocket(this.port);
+            while(true){
+                frombroker = serverSocket.accept();
+                out = new ObjectOutputStream(frombroker.getOutputStream());
+                in = new ObjectInputStream(frombroker.getInputStream());
 
-            ObjectOutputStream out = new ObjectOutputStream(connection.getOutputStream());
-            ObjectInputStream in = new ObjectInputStream(connection.getInputStream());
 
-            while (in.readObject()!=null){
 
-                System.out.println(counter++);
 
+
+
+                //while exw akoma video na dexthw
+                while (true){
+                    Object obj = in.readObject();
+                if(!(obj instanceof Integer)){ break;}
+                int size = (Integer) obj;
+                if(size!=0){
+                    System.out.println("the number of chunks sent is: "+size+"-1");
+
+                    queue = new LinkedList<>(); //for each video we initialize a new queue
+                    //store the video to queue
+                    for(int i=0; i<size-1; i++){
+                        queue.add((byte[]) in.readObject());
+                    }
+                    byte[] obj2 = (byte[])in.readObject();
+                    String channel = new String(obj2);
+                    System.out.println("From channel: " + channel +" and im: "+ this.getName());
+                    QueueList.add(queue);
+
+                }
+            }
             }
 
 
-        } catch (IOException e) {
+
+    } catch (IOException e) {
             e.printStackTrace();
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
+        finally {
+            try {
+                System.out.println("closing acceptvideo...");
+                out.close();
+                in.close();
+                frombroker.close();
+                serverSocket.close();
+                return;
+            } catch (IOException ioException) {
+                ioException.printStackTrace();
+            }
+        }
+
+
     }
 
     public int getPort() {
@@ -265,8 +323,10 @@ public class Client extends Thread implements Serializable {
    }
 
     public static void main(String[] args) {
-        new Client("#nature","#sea",4111, "Kostakis").start();
-        new Client("#nature","#sea",4112, "Kostas").start();
+
+        new Client("#sea",null,4111, "Kostakis").start();
+        new Client("#nature",null,4112, "Kostas").start();
+
         //new Client("#nature","#sea",4112, "Kostaras").start();
 
     }

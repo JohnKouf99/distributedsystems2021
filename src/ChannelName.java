@@ -116,12 +116,12 @@ public class ChannelName {
             ArrayList<VideoFile> NatureVideos = new ArrayList<>();
             ArrayList<VideoFile> SeaVideos = new ArrayList<>();
 
-            NatureVideos.add(new VideoFile("mp4files/EarthExample.mp4"));
+            NatureVideos.add(new VideoFile("mp4files/ForestExample.mp4"));
             NatureVideos.add(new VideoFile("mp4files/WaterfallVideo.mp4"));
             SeaVideos.add(new VideoFile("mp4files/WaterfallVideo.mp4"));
             SeaVideos.add(new VideoFile("mp4files/BeachExample.mp4"));
             SeaVideos.add(new VideoFile("mp4files/SeaVideo.mp4"));
-
+            this.usersVideoFilesMap.put("#nature", NatureVideos);
             this.usersVideoFilesMap.put(this.channelName, NatureVideos);
             this.usersVideoFilesMap.put(this.channelName, SeaVideos);
 
