@@ -167,30 +167,7 @@ public class VideoFile {
         return ChunksList;
     }
 
-    public static void main(String[] args) throws IOException,SAXException, TikaException {
-        VideoFile v = new VideoFile("mp4files/EarthExample.mp4");
 
-
-        //this is for testing
-/**
-        v.getData("EarthExample.mp4");
-        System.out.println("---------------------");
-        System.out.println(v.dateCreated);
-        System.out.println(v.frameHeight);
-        System.out.println(v.length);
-        System.out.println(v.frameWidth);
-        System.out.println(v.framerate);
-        System.out.println(v.videoName);
-        v.associatedHashtags.add("#earth");
-        v.associatedHashtags.add("#nature");
-        v.associatedHashtags.add("#space");
-
-        v.SplitToChunks();
-        System.out.println(v.ChunksList.size());*/
-
-
-
-    }
 
 
 

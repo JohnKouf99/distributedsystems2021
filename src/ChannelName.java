@@ -49,17 +49,9 @@ public class ChannelName {
 
         }
 
-
-
-
-
-
-
-
-
-
-
     }
+
+
 
 // we initialize the channels videos and hashtags
     public HashMap setUsersVideoFilesMap() {
@@ -143,14 +135,7 @@ public class ChannelName {
         return usersVideoFilesMap;
     }
 
-    //this is for testing
-    public static void main(String[] args) {
 
-        ChannelName channel = new ChannelName("John");
-
-        //channel.usersVideoFilesMap.add
-
-    }
 
 
 }

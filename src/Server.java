@@ -29,14 +29,12 @@ public class Server extends Thread{
     ChannelName channel;
     HashMap<String, ArrayList<VideoFile>> VideoMap; //contains (key, video) map
 
-    boolean CLOSED = false;
 
 
 
-    public Server(int port, String name, String video){
+    public Server(int port, String name){
         this.port=port;
-        if(video!=null)
-            this.value = new VideoFile(video);
+
 
         if(name=="John"){
             this.channel = new ChannelName("John");
@@ -59,7 +57,6 @@ public class Server extends Thread{
             this.VideoMap = this.channel.setUsersVideoFilesMap();
         for ( String key : VideoMap.keySet() ) {     //initialize portmap
             Portmap.put(key,this.port);
-            System.out.println(key+"  " +value);
         }
     }
 
@@ -103,7 +100,7 @@ public class Server extends Thread{
 
         if(list.isEmpty())
             VideoMap.remove(tag);
-        //VideoMap.containsValue(list.contains(value));
+
         }
 
 
@@ -171,7 +168,6 @@ public class Server extends Thread{
                 e.printStackTrace();
             } finally {
                 try {
-                    System.out.println("closing...");
                     in.close();
                     out.close();
                     requestSocket.close();
@@ -189,7 +185,7 @@ public class Server extends Thread{
         ObjectInputStream in = null;
         ServerSocket serverSocket=null;
         try{
-            System.out.println("im in connect with brokers now");
+            System.out.println("opening publisher for brokers...");
 
             serverSocket = new ServerSocket(this.port,10);
 
@@ -200,9 +196,9 @@ public class Server extends Thread{
                 out = new ObjectOutputStream(frombroker.getOutputStream());
                 in = new ObjectInputStream(frombroker.getInputStream());
                 String tag = (String)in.readObject();
-                System.out.println("client wants "+tag+"'s videos"+" and my port is "+ this.port);
+                System.out.println(this.channel.channelName+": client wants "+tag+"'s videos");
                 push(tag,out,in);
-                System.out.println("im ending push now...");
+                System.out.println(this.channel.channelName+": ending push process...");
 
 
 
@@ -214,7 +210,7 @@ public class Server extends Thread{
         }
         finally {
             try {
-                System.out.println("closing ConnectWithBroker...");
+                System.out.println(this.channel.channelName+ ": closing broker connection...");
                 out.close();
                 in.close();
                 serverSocket.close();
@@ -237,18 +233,12 @@ public class Server extends Thread{
 
 
     public void run(){
-       // notifyBrokers();
-
 
 
         notifyBrokers(null);
 
 
-
-
-
     }
-
 
 
 
@@ -265,7 +255,6 @@ public class Server extends Thread{
                 if(key.equals(tag)){ //we find videos with specific tag
                     for(VideoFile video: VideoMap.get(key)) { //for each video that belongs to a specific tag
                         video.SplitToChunks();
-                        System.out.println(video.getChunksList().size());
                         objectOutputStream.writeObject((Integer)video.getChunksList().size()); //we send the list size
                         objectOutputStream.flush();
 
@@ -313,20 +302,9 @@ public class Server extends Thread{
     public static void main(String[] args) {
 
 
-        new Server(4333,"John", null).start();
-        new Server(4334,"Nikolas", null).start();
-        new Server(4335,"Euthimis", null).start();
-
-        /**
-        for (String name: Portmap.keySet()) {
-            String key = name.toString();
-            String value = Portmap.get(name).toString();
-            System.out.println(key + " " + value);
-        }*/
-
-
-
-
+        new Server(4333,"John").start();
+        new Server(4334,"Nikolas").start();
+        new Server(4335,"Euthimis").start();
 
 
 
