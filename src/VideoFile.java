@@ -74,7 +74,7 @@ public class VideoFile {
         //System.out.println("Document Metadata :");
         String[] metadataNames = metadata.names();
 
-        this.videoName = FilenameUtils.removeExtension(file);
+        this.videoName = FilenameUtils.removeExtension(file).replace("mp4files/","");
         associatedHashtags.add(this.videoName);
 
         for(String name : metadataNames) {
@@ -89,7 +89,6 @@ public class VideoFile {
             if(name=="Creation-Date"){
                 this.dateCreated = metadata.get(name);
                 associatedHashtags.add("Date: "+this.dateCreated.substring(0,10));
-               // System.out.println(this.dateCreated.substring(0,10));
                 }
             if(name=="xmpDM:duration"){
                 this.length = metadata.get(name);
@@ -99,7 +98,6 @@ public class VideoFile {
                 associatedHashtags.add("Framerate: "+this.framerate);}
 
         }
-
 
 }
 
@@ -172,4 +170,6 @@ public class VideoFile {
 
 
 }
+
+
 

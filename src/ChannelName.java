@@ -24,9 +24,7 @@ public class ChannelName {
              this.hashtagsPublished.add("#nature");
              this.hashtagsPublished.add("#city");
              this.hashtagsPublished.add("#sea");
-
-
-    }
+        }
 
 
         if(channelName=="Nikolas"){
@@ -35,7 +33,6 @@ public class ChannelName {
 
             this.hashtagsPublished.add("#city");
             this.hashtagsPublished.add("#sea");
-
         }
 
 

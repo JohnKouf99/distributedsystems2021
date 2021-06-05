@@ -16,12 +16,15 @@ public class Client extends Thread implements Serializable {
     int port;
     VideoFile value;
     List <List<Object>>  info;
-    Queue<byte[]> queue;// = new LinkedList<>();
-    private ArrayList<Queue<byte[]> > QueueList = new ArrayList<>();
+    Queue<byte[]> queue; //we store the video here
+    boolean received;
+    //private ArrayList<Queue<byte[]> > QueueList = new ArrayList<>(); //array list where we store a list of videos
+    private HashMap<String , Queue<byte[]>> VideoList= new HashMap<>(); //we store here the video and its name
 
     Integer BrokerPorts[] = new Integer[] { 4222, 4223, 4224};
 
-    public Client(String tag,  int port, String channelName){
+    public Client(String tag,  int port, String channelName , boolean received){
+        this.received = received;
         this.tag=tag;
         this.port=port;
         this.channelName=channelName;
@@ -123,6 +126,7 @@ public class Client extends Thread implements Serializable {
 
 //this method is used for client registry to a specific broker
       private void register(int port){
+
           synchronized (this){
 
               Socket request2 = null;
@@ -139,7 +143,7 @@ public class Client extends Thread implements Serializable {
                         in = new ObjectInputStream(request2.getInputStream());
                         out.writeObject("register");
                         out.flush();
-                        out.writeObject(new Client(this.tag,this.port,this.channelName)); //client registers to the broker that contains the info he needs //ΕΡΡΟΡ
+                        out.writeObject(new Client(this.tag,this.port,this.channelName,this.received)); //client registers to the broker that contains the info he needs
                         System.out.println(this.channelName+": sending my info....");
                         out.flush();
                         if(in.readObject().equals("got consumer info")){
@@ -173,15 +177,37 @@ public class Client extends Thread implements Serializable {
 
 
 
+                void playData() throws IOException{
+                    System.out.println("storing data...");
+                    for(String key: this.VideoList.keySet()){ //for each video with a certain name
+                        BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream("ConsumerFiles/"+this.channelName+","+key+".mp4")); //we create a file
+                        for(byte[] chunk: this.VideoList.get(key)){ //for each chunk of the video
+                            bos.write(chunk);
+                            bos.flush();
+                        }
+                        bos.close();
+                    }
+
+
+
+
+    }
+
+
+
+
 
     private synchronized void acceptvideo(){
         Socket frombroker=null;
         ObjectOutputStream out=null;
         ObjectInputStream in = null;
         ServerSocket serverSocket=null;
+        String channel=null;
+        String videoname = null;
 
 
         try{
+
             serverSocket = new ServerSocket(this.port);
             while(true){
                 frombroker = serverSocket.accept();
@@ -196,26 +222,35 @@ public class Client extends Thread implements Serializable {
                 //while there are still chunks of data to receive
                 while (true){
                     Object obj = in.readObject();
-                if(!(obj instanceof Integer)){ break;}
-                int size = (Integer) obj;
-                if(size!=0){
-                    System.out.println(this.channelName+": the number of chunks received is: "+size);
+                    if(!(obj instanceof Integer)){ break;}
+                    int size = (Integer) obj;
+                    if(size!=0){
+                      System.out.println(this.channelName+": the number of chunks received is: "+size);
 
-                    queue = new LinkedList<>(); //for each video we initialize a new queue
-                    //store the video to queue
-                    for(int i=0; i<size-1; i++){
-                        queue.add((byte[]) in.readObject());
+                      queue = new LinkedList<>(); //for each video we initialize a new queue
+                      //store the video to queue
+                      for(int i=0; i<size-1; i++){
+                          queue.add((byte[]) in.readObject());
                     }
-                    byte[] obj2 = (byte[])in.readObject();
-                    String channel = new String(obj2);
-                    System.out.println(this.channelName+": From channel: " + channel);
-                    QueueList.add(queue);
+                       byte[] obj2 = (byte[])in.readObject();
+                       channel = new String(obj2);
+
+
+
+
+                       System.out.println(this.channelName+": From channel: " + channel.substring(0,channel.indexOf(",")));
+                      // QueueList.add(queue);
+                       this.VideoList.put(channel, queue);
+                       //System.out.println(this.channelName+" :"+VideoList.size());
+
+
 
                 }
             }
+
+                playData();
+
             }
-
-
 
     } catch (IOException e) {
             e.printStackTrace();
@@ -228,7 +263,8 @@ public class Client extends Thread implements Serializable {
                 in.close();
                 frombroker.close();
                 serverSocket.close();
-                return;
+
+
             } catch (IOException ioException) {
                 ioException.printStackTrace();
             }
@@ -247,16 +283,19 @@ public class Client extends Thread implements Serializable {
 
 
     public synchronized void run() {
-
            getBrokers();
 
 
-   }
+    }
+
+   // public ArrayList<Queue<byte[]>> getQueueList() {
+   //     return QueueList;
+  //  }
 
     public static void main(String[] args) {
 
-        new Client("#sea",4111, "Client1").start();
-        new Client("#nature",4112, "Client2").start();
+        new Client("#sea",4111, "Client1",false).start();
+        new Client("#nature",4112, "Client2",false).start();
 
 
 

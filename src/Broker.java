@@ -2,6 +2,8 @@
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
+import org.glassfish.jaxb.runtime.v2.runtime.output.SAXOutput;
+
 import java.io.*;
 import java.net.InetAddress;
 import java.net.*;
@@ -41,9 +43,9 @@ public class Broker extends Thread implements Serializable {
 
     //Server stuff
     public static ListMultimap<String , Integer> ServerPortmap =  ArrayListMultimap.create(); //tag->server port hashmap
-     Queue<byte[]> queue; //video chunks are stored here
-     ArrayList<Queue<byte[]> > QueueList; //videos of a specific key type are stored here
-     Map<String, ArrayList<Queue<byte[]> >> multimap = new HashMap<>();  //tag -> video hashmap
+    Queue<byte[]> queue; //video chunks are stored here
+    ArrayList<Queue<byte[]> > QueueList; //videos of a specific key type are stored here
+    Map<String, ArrayList<Queue<byte[]> >> multimap = new HashMap<>();  //tag -> video hashmap
 
 
 
@@ -90,17 +92,21 @@ public class Broker extends Thread implements Serializable {
                 int size = video.size(); //get video size
                 out.writeObject(size); //we send the size to the consumer
                 out.flush();
-                for(int i=0; i<size-1; i++){  //for each chunk of the video
-                    out.writeObject(video.remove()); //send it to the client
-                    out.flush();
+                for(Object b : video){  //for each chunk of the video
+                    if(b instanceof byte[]){
+                    out.writeObject(b); //send it to the client
+                    out.flush();}
+                    else out.writeObject(b);
+
                 }
 
-                out.writeObject(video.remove()); //send the channel name seperately
+
             }
 
             out.flush();
             out.writeObject("end");
             out.flush();
+
 
 
 
@@ -131,7 +137,82 @@ public class Broker extends Thread implements Serializable {
                 }
                 List<Integer> ports = ServerPortmap.get(cl.tag); //we take all the servers that contain this tag
                 //check if info is already taken
-                if(infotaken.contains(tag)) return;
+
+
+                if(infotaken.contains(tag)){
+                    //System.out.println("ERRORRRRRRR");
+                    //CHECK FOR UPDATES
+                    for(Integer port : ports){
+                    request = new Socket("127.0.0.1",port);
+                    out = new ObjectOutputStream(request.getOutputStream());
+                    in = new ObjectInputStream(request.getInputStream());
+                    out.writeObject("extra");
+                    out.flush();
+                    out.writeObject(tag);
+                    out.flush();
+
+                    //Object obj = in.readObject();
+
+
+
+                        synchronized (request){
+
+                            while(true){
+
+                                Object object = in.readObject();
+
+                                if(!(object instanceof Integer)){
+                                   // System.out.println("end of method");
+                                    break;}
+
+                                int size  = (Integer) object; //we read the number of chunks
+                                //System.out.println(size+"SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS");
+
+                                if(size!=0){
+                                    System.out.println("Broker"+this.port+ ": the number of chunks sent is: "+size);
+
+                                    queue = new LinkedList<>(); //for each video we initialize a new queue
+                                    //store the video to queue
+                                    for(int i=0; i<size; i++){
+                                        queue.add((byte[]) in.readObject());
+                                    }
+
+                                    byte[] obj2 = (byte[])in.readObject();
+                                    queue.add((byte[]) obj2); //lastly we recieve the channelname at the end of the queue
+
+                                    //add queue to queue list
+                                    if(multimap.containsKey(tag))
+                                        multimap.get(tag).add(queue);
+                                    else{
+                                        QueueList = new ArrayList<>(); //if there is no tag for the video we create a new queue list
+                                        QueueList.add(queue); // and store the video there
+                                        multimap.put(tag, QueueList);
+                                    }
+
+                                }
+                            }
+
+
+
+                        }
+
+                        in.close();
+                        out.close();
+                        request.close();
+
+
+
+                    }
+
+
+
+
+
+
+                    }
+
+
+                else{
                 for(Integer port : ports){
                     System.out.println("Broker"+this.port+ ": Taking info from server port: "+port);
                     request = new Socket("127.0.0.1",port);
@@ -145,57 +226,58 @@ public class Broker extends Thread implements Serializable {
 
 
 
-                    while(true){
+                        while(true){
 
-                        Object obj = in.readObject();
+                            Object obj = in.readObject();
 
-                        if(!(obj instanceof Integer)){
-                            break;}
+                            if(!(obj instanceof Integer)){
+                                break;}
 
-                        int size  = (Integer) obj; //we read the number of chunks
+                            int size  = (Integer) obj; //we read the number of chunks
 
-                        if(size!=0){
-                            System.out.println("Broker"+this.port+ ": the number of chunks sent is: "+size);
+                            if(size!=0){
+                                System.out.println("Broker"+this.port+ ": the number of chunks sent is: "+size);
 
 
-                            queue = new LinkedList<>(); //for each video we initialize a new queue
-                            //store the video to queue
-                            for(int i=0; i<size; i++){
-                                queue.add((byte[]) in.readObject());
+                                queue = new LinkedList<>(); //for each video we initialize a new queue
+                                //store the video to queue
+                                for(int i=0; i<size; i++){
+                                    queue.add((byte[]) in.readObject());
+                                }
+
+                                byte[] obj2 = (byte[])in.readObject();
+                                queue.add((byte[]) obj2); //lastly we recieve the channelname at the end of the queue
+
+
+                                //add queue to queue list
+                                if(multimap.containsKey(tag))
+                                    multimap.get(tag).add(queue);
+
+                                else{
+
+                                    QueueList = new ArrayList<>(); //if there is no tag for the video we create a new queue list
+                                    QueueList.add(queue); // and store the video there
+                                    multimap.put(tag, QueueList);
+                                }
+
+
                             }
 
-                            byte[] obj2 = (byte[])in.readObject();
-                            queue.add((byte[]) obj2); //lastly we recieve the channelname at the end of the queue
 
 
-                            //add queue to queue list
-                            if(multimap.containsKey(tag))
-                                multimap.get(tag).add(queue);
-
-                            else{
-
-                                QueueList = new ArrayList<>(); //if there is no tag for the video we create a new queue list
-                                QueueList.add(queue); // and store the video there
-                                multimap.put(tag, QueueList);
-                            }
-
-
-                        }
+                        }}
 
 
 
-                    }}
 
 
+                infotaken.add(tag);
 
-                     }
-
-                     infotaken.add(tag);
-
-                     in.close();
-                     out.close();
-                     request.close();
-                     return;
+                in.close();
+                out.close();
+                request.close();}}
+            //}
+                //return;
 
 
 
@@ -210,8 +292,8 @@ public class Broker extends Thread implements Serializable {
         }
     }
 
-//method in which we initialize the port map(tag->server structure) and send back to the publisher the hashsed result
- void notifyBrokersOnChanges(){
+    //method in which we initialize the port map(tag->server structure) and send back to the publisher the hashsed result
+    void notifyBrokersOnChanges(){
         ServerSocket fromclient=null;
         Socket connection=null;
         ObjectOutputStream out=null;
@@ -219,22 +301,22 @@ public class Broker extends Thread implements Serializable {
 
 
         ListMultimap temp;
-    try {
-        fromclient = new ServerSocket(this.srvrport-10,10);
-        connection = fromclient.accept();
-        out = new ObjectOutputStream(connection.getOutputStream());
-         in = new ObjectInputStream(connection.getInputStream());
+        try {
+            fromclient = new ServerSocket(this.srvrport-10,10);
+            connection = fromclient.accept();
+            out = new ObjectOutputStream(connection.getOutputStream());
+            in = new ObjectInputStream(connection.getInputStream());
 
-        temp = (ListMultimap) in.readObject();
+            temp = (ListMultimap) in.readObject();
 
-        for (Object key : temp.keySet()) {
-            List<Integer> lastNames = temp.get(key);
-            for(Integer port : lastNames){
-            this.ServerPortmap.put((String)key, port);}
-        }
+            for (Object key : temp.keySet()) {
+                List<Integer> lastNames = temp.get(key);
+                for(Integer port : lastNames){
+                    this.ServerPortmap.put((String)key, port);}
+            }
 
-        CalculateKeys(); //after we get the key info from the server we proceed to hash its content and each brokers gets its hashes
-        List <List<Object>> BrokerInfo = new ArrayList<>();
+            CalculateKeys(); //after we get the key info from the server we proceed to hash its content and each brokers gets its hashes
+            List <List<Object>> BrokerInfo = new ArrayList<>();
 
 
             if(getBrokerList().size()==3){ //when the last broker has been initialized
@@ -248,36 +330,36 @@ public class Broker extends Thread implements Serializable {
                     BrokerInfo.add(info);
 
                 }}
-                out.writeObject(BrokerInfo);
-                out.flush();
+            out.writeObject(BrokerInfo);
+            out.flush();
 
-        in.close();
-        out.close();
+            in.close();
+            out.close();
 
 
 
-    } catch (IOException e) {
-        try {
-            fromclient.close();
-        } catch (IOException e1) {
-            e1.printStackTrace();
+        } catch (IOException e) {
+            try {
+                fromclient.close();
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
+
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
         }
 
-    } catch (ClassNotFoundException e) {
-        e.printStackTrace();
+
+
+
     }
 
+    void SendInfoToClient(){
 
-
-
-}
-
-         void SendInfoToClient(){
-
-             ObjectOutputStream objectOutputStream=null;
-             ObjectInputStream objectInputStream=null;
-             Object obj2 = null;
-             String tag=null;
+        ObjectOutputStream objectOutputStream=null;
+        ObjectInputStream objectInputStream=null;
+        Object obj2 = null;
+        String tag=null;
 
         try{
 
@@ -295,55 +377,55 @@ public class Broker extends Thread implements Serializable {
 
 
 
-                 if(obj.toString().equals("info")){  //if we want the broker to send just info about its tags
+                if(obj.toString().equals("info")){  //if we want the broker to send just info about its tags
 
 
-                if(getBrokerList().size()==3){
+                    if(getBrokerList().size()==3){
 
-                for(Broker br: getBrokerList() ){
-                    List <Object> info = new ArrayList<>();
-                    info.add(br.addr);
-                    info.add(br.port);
-                    info.add(br.brokerID);
-                    info.add(br.getChannelList());
-                    info.add(br.getHashtagList());
-                    BrokerInfo.add(info);
+                        for(Broker br: getBrokerList() ){
+                            List <Object> info = new ArrayList<>();
+                            info.add(br.addr);
+                            info.add(br.port);
+                            info.add(br.brokerID);
+                            info.add(br.getChannelList());
+                            info.add(br.getHashtagList());
+                            BrokerInfo.add(info);
 
-                }}
+                        }}
 
-                objectOutputStream.writeObject(BrokerInfo);
-                objectOutputStream.flush();
-                objectOutputStream.writeObject("List sent");
-                objectOutputStream.flush();
-
-
-
-                 }
-
-
-
-                 if(obj.toString().equals("register")){
-
-                     obj2 = objectInputStream.readObject();
-
-
-
-                 if(obj2 instanceof Client){   //if a client wants to register
-                     tag = ((Client) obj2).tag; // we hold the consumers key
-
-                    if (!registeredClients.contains(obj2)) {
-                        registeredClients.add((Client) obj2);
-                    }
-
-
-                    objectOutputStream.writeObject("got consumer info");
+                    objectOutputStream.writeObject(BrokerInfo);
+                    objectOutputStream.flush();
+                    objectOutputStream.writeObject("List sent");
+                    objectOutputStream.flush();
 
 
 
                 }
 
 
-                 }
+
+                if(obj.toString().equals("register")){
+
+                    obj2 = objectInputStream.readObject();
+
+
+
+                    if(obj2 instanceof Client){   //if a client wants to register
+                        tag = ((Client) obj2).tag; // we hold the consumers key
+
+                        if (!registeredClients.contains(obj2)) {
+                            registeredClients.add((Client) obj2);
+                        }
+
+
+                        objectOutputStream.writeObject("got consumer info");
+
+
+
+                    }
+
+
+                }
 
                 objectOutputStream.close();
                 objectInputStream.close();
@@ -355,12 +437,12 @@ public class Broker extends Thread implements Serializable {
 
 
 
-                }
-
-
             }
 
-            catch (IOException e) {
+
+        }
+
+        catch (IOException e) {
             e.printStackTrace();
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
@@ -377,49 +459,53 @@ public class Broker extends Thread implements Serializable {
 
 
         }
-        }
+    }
 
 
 
-        private void SendVideoToConsumer(){
-            Socket request = null;
-            ObjectOutputStream out=null;
-            ObjectInputStream in=null;
-            for(Client cl : registeredClients){
-                if(this.hashtagList.contains(cl.tag)||this.channelList.contains(cl.tag)){
-                    try{
-                        request = new Socket("127.0.0.1",cl.port);
-                        out = new ObjectOutputStream(request.getOutputStream());
-                        in = new ObjectInputStream(request.getInputStream());
-                        pull(cl.tag, out, in);
+    private void SendVideoToConsumer(){
+        Socket request = null;
+        ObjectOutputStream out=null;
+        ObjectInputStream in=null;
+        String tag;
+        for(Client cl : registeredClients){
+           // System.out.println(cl.port+"AAAAAAAAAAAAAAAAAAAAAAA");
+            if((this.hashtagList.contains(cl.tag)||this.channelList.contains(cl.tag)) && !cl.received){
+                try{
+                    request = new Socket("127.0.0.1",cl.port);
+                    out = new ObjectOutputStream(request.getOutputStream());
+                    in = new ObjectInputStream(request.getInputStream());
+                    pull(cl.tag, out, in);
+                    cl.received=true;
 
 
-                    } catch (UnknownHostException e) {
-                        e.printStackTrace();
+                } catch (UnknownHostException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                finally {
+                    try {
+                        request.close();
+                        in.close();
+                        out.close();
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                    finally {
-                        try {
-                            request.close();
-                            in.close();
-                            out.close();
-                            return;
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
                 }
-
-
             }
 
 
-
-
-
-
         }
+
+        //this.multimap.clear();
+
+
+
+
+
+
+    }
 
 
 
@@ -462,15 +548,15 @@ public class Broker extends Thread implements Serializable {
     }
 
     String getPort(){
-            return String.valueOf(this.port);
+        return String.valueOf(this.port);
     }
 
     String getObj(){
-            return String.valueOf(this.obj);
+        return String.valueOf(this.obj);
     }
 
     String getHashtag(){
-            return this.hashtag;
+        return this.hashtag;
     }
 
     public List<String> getChannelList() {
@@ -539,41 +625,41 @@ public class Broker extends Thread implements Serializable {
         if(getBrokerList().size()==3){
 
 
-        //we start from the biggest hash
-        BrokerHashes.sort(Comparator.naturalOrder());
-        Collections.reverse(BrokerHashes);
+            //we start from the biggest hash
+            BrokerHashes.sort(Comparator.naturalOrder());
+            Collections.reverse(BrokerHashes);
 
-        for(String keys: ServerPortmap.keySet()){
-            //for each hashed tag
-            String hashedkey = encryptThisString(keys);
-            if(hashedkey.compareTo(BrokerHashes.get(0))>0 ){ //if hash is bigger than biggest hash
-                Broker br = BrokerHashesMap.get(BrokerHashes.get(2)); //we find the broker with the smallest hash
-                if(keys.contains("#") && !br.getHashtagList().contains(keys)) br.getHashtagList().add(keys);
-                else if(!br.getHashtagList().contains(keys)) br.getChannelList().add(keys);  //and add the hashtag to it
+            for(String keys: ServerPortmap.keySet()){
+                //for each hashed tag
+                String hashedkey = encryptThisString(keys);
+                if(hashedkey.compareTo(BrokerHashes.get(0))>0 ){ //if hash is bigger than biggest hash
+                    Broker br = BrokerHashesMap.get(BrokerHashes.get(2)); //we find the broker with the smallest hash
+                    if(keys.contains("#") && !br.getHashtagList().contains(keys)) br.getHashtagList().add(keys);
+                    else if(!br.getHashtagList().contains(keys)) br.getChannelList().add(keys);  //and add the hashtag to it
+                }
+
+                else if(hashedkey.compareTo(BrokerHashes.get(0))<0 && hashedkey.compareTo(BrokerHashes.get(1))>0){ //add to the bigger broker
+                    Broker br = BrokerHashesMap.get(BrokerHashes.get(0));
+                    if(keys.contains("#")&&!br.getHashtagList().contains(keys)) br.getHashtagList().add(keys);
+                    else if(!br.getHashtagList().contains(keys)) br.getChannelList().add(keys);
+                }
+
+                else if(hashedkey.compareTo(BrokerHashes.get(1))<0 && hashedkey.compareTo(BrokerHashes.get(2))>0){ //add to the second bigger broker
+                    Broker br = BrokerHashesMap.get(BrokerHashes.get(1));
+                    if(keys.contains("#")&&!br.getHashtagList().contains(keys)) br.getHashtagList().add(keys);
+                    else if(!br.getHashtagList().contains(keys)) br.getChannelList().add(keys);
+                }
+
+                else {
+                    Broker br = BrokerHashesMap.get(BrokerHashes.get(2)); //add to the last broker
+                    if(keys.contains("#")&&!br.getHashtagList().contains(keys)) br.getHashtagList().add(keys);
+                    else if(!br.getHashtagList().contains(keys)) br.getChannelList().add(keys);
+                }
+
+
+
+
             }
-
-            else if(hashedkey.compareTo(BrokerHashes.get(0))<0 && hashedkey.compareTo(BrokerHashes.get(1))>0){ //add to the bigger broker
-                Broker br = BrokerHashesMap.get(BrokerHashes.get(0));
-                if(keys.contains("#")&&!br.getHashtagList().contains(keys)) br.getHashtagList().add(keys);
-                else if(!br.getHashtagList().contains(keys)) br.getChannelList().add(keys);
-            }
-
-            else if(hashedkey.compareTo(BrokerHashes.get(1))<0 && hashedkey.compareTo(BrokerHashes.get(2))>0){ //add to the second bigger broker
-                Broker br = BrokerHashesMap.get(BrokerHashes.get(1));
-                if(keys.contains("#")&&!br.getHashtagList().contains(keys)) br.getHashtagList().add(keys);
-                else if(!br.getHashtagList().contains(keys)) br.getChannelList().add(keys);
-            }
-
-            else {
-                Broker br = BrokerHashesMap.get(BrokerHashes.get(2)); //add to the last broker
-                if(keys.contains("#")&&!br.getHashtagList().contains(keys)) br.getHashtagList().add(keys);
-                else if(!br.getHashtagList().contains(keys)) br.getChannelList().add(keys);
-            }
-
-
-
-
-        }
 
 
 

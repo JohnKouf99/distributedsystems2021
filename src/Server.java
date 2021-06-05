@@ -26,17 +26,21 @@ public class Server extends Thread{
     public static HashMap <String , Integer> BrokerPortMap = new HashMap<>(); // contains (hashtag , broker port) pairs
     public static List<List<Object>> BrokerList; //contains list of brokers
     static int servers=0;
+    String name;
     ChannelName channel;
     HashMap<String, ArrayList<VideoFile>> VideoMap; //contains (key, video) map
+    HashMap<String, ArrayList<VideoFile>> newVideoMap = new HashMap<>(); //contains (key, video) map
+    static List<Server> ServerList = new ArrayList<>();
 
-
-
+    public Server(){}
 
     public Server(int port, String name){
         this.port=port;
+        this.name = name;
 
 
         if(name=="John"){
+            ServerList.add(this);
             this.channel = new ChannelName("John");
             this.VideoMap = this.channel.setUsersVideoFilesMap(); //initialize video map
             for ( String key : VideoMap.keySet() ) {     //initialize portmap
@@ -45,6 +49,7 @@ public class Server extends Thread{
             }
         }
         if(name=="Nikolas"){
+            ServerList.add(this);
             this.channel = new ChannelName("Nikolas");
             this.VideoMap = this.channel.setUsersVideoFilesMap();
             for ( String key : VideoMap.keySet() ) {     //initialize portmap
@@ -53,21 +58,22 @@ public class Server extends Thread{
         }
 
         if(name=="Euthimis"){
+            ServerList.add(this);
             this.channel = new ChannelName("Euthimis");
             this.VideoMap = this.channel.setUsersVideoFilesMap();
-        for ( String key : VideoMap.keySet() ) {     //initialize portmap
-            Portmap.put(key,this.port);
+            for ( String key : VideoMap.keySet() ) {     //initialize portmap
+                Portmap.put(key,this.port);
+            }
         }
-    }
 
         servers++;
-        }
+    }
 
 
 
-        public Server(int port){
-            this.port = port;
-        }
+    public Server(int port){
+        this.port = port;
+    }
 
 
     public static HashMap<String, Integer> getBrokerPortMap() {
@@ -75,24 +81,45 @@ public class Server extends Thread{
     }
 
     //adds new video to channel
-    public HashMap addVideo(String tag, VideoFile value){
-        if(VideoMap.containsKey(tag)){
-            VideoMap.get(tag).add(value);
-            return VideoMap;
+    void addVideo(String name,String tag, VideoFile value){
+
+        for(Server s: ServerList){
+
+        if(name.equals(s.name)){
+            System.out.println("want to add video and im "+s.name);
+            if(s.newVideoMap.containsKey(tag)){
+                System.out.println("adding video....");
+                s.newVideoMap.get(tag).add(value);
+                s.VideoMap.get(tag).add(value);
+                Portmap.put(tag, s.port);}
+
+            else{
+                System.out.println("adding video2....");
+                ArrayList <VideoFile> list = new ArrayList();
+                list.add(value);
+                s.newVideoMap.put(tag, list);
+                s.VideoMap.put(tag, list);
+                Portmap.put(tag, s.port);
+            }
+
+
+
+
         }
 
-        else{
-            ArrayList <VideoFile> list = new ArrayList();
-            list.add(value);
-            VideoMap.put(tag, list);
-            return VideoMap;
-        }
+
+
+        else return;
+
+
     }
-        void removeHashtag(String hashtag){
-            this.VideoMap.remove(hashtag);
-        }
 
-        void removeVideo(String tag, VideoFile value){
+    }
+    void removeHashtag(String hashtag){
+        this.VideoMap.remove(hashtag);
+    }
+
+    void removeVideo(String tag, VideoFile value){
         ArrayList list = VideoMap.get(tag);
 
         if(list.contains(value))
@@ -101,85 +128,85 @@ public class Server extends Thread{
         if(list.isEmpty())
             VideoMap.remove(tag);
 
-        }
+    }
 
 
 
-        List getServerList(){return this.hashtags;}
+    List getServerList(){return this.hashtags;}
 
-        List getBrokerList(){return br.getBrokerList();}
-
-
-//we send the portmap to the brokers
-        synchronized void notifyBrokers(String tag){
-
-            Socket requestSocket=null;
-            ObjectOutputStream out = null;
-            ObjectInputStream in = null;
-
-            try{
-                     requestSocket = new Socket("127.0.0.1",this.port-10);
-
-                     out = new ObjectOutputStream(requestSocket.getOutputStream());
-                     in = new ObjectInputStream(requestSocket.getInputStream());
+    List getBrokerList(){return br.getBrokerList();}
 
 
-                     //if tag=null we just send the portmap with no changes
-                    if(tag==null && servers==3){
+    //we send the portmap to the brokers
+    synchronized void notifyBrokers(String tag){
 
-                        out.writeObject(this.Portmap);
-                        out.flush();
+        Socket requestSocket=null;
+        ObjectOutputStream out = null;
+        ObjectInputStream in = null;
 
-                        Object obj =(List) in.readObject(); //we read the broker list sent by broker
-                        BrokerList = (List<List<Object>>) obj;
+        try{
+            requestSocket = new Socket("127.0.0.1",this.port-10);
+
+            out = new ObjectOutputStream(requestSocket.getOutputStream());
+            in = new ObjectInputStream(requestSocket.getInputStream());
+
+
+            //if tag=null we just send the portmap with no changes
+            if(tag==null && servers==3){
+
+                out.writeObject(this.Portmap);
+                out.flush();
+
+                Object obj =(List) in.readObject(); //we read the broker list sent by broker
+                BrokerList = (List<List<Object>>) obj;
 
 
 
-                    }
-                    //if there is video for this certain key and all servers are open
-                    else if(VideoMap.containsKey(tag) && tag!=null && servers==3){
-
-                    Portmap.put(tag, this.port);
-                    out.writeObject(this.Portmap);
-                    out.flush();
-
-                    Object obj =(List) in.readObject();
-                    BrokerList =    (List <List<Object>>) in.readObject();
-
-                    }
-
-                    //if it is removed
-                    else if( servers==3) {
-
-                        Portmap.removeAll(tag);
-                        out.writeObject(this.Portmap);
-                        out.flush();
-
-                        Object obj =(List) in.readObject();
-                        BrokerList =    (List <List<Object>>) in.readObject();
-
-                    }
-                    else return;
             }
-            catch (UnknownHostException unknownHost) {
-                System.err.println("You are trying to connect to an unknown host server!");
+            //if there is video for this certain key and all servers are open
+            else if(VideoMap.containsKey(tag) && tag!=null && servers==3){
+
+                Portmap.put(tag, this.port);
+                out.writeObject(this.Portmap);
+                out.flush();
+
+                Object obj =(List) in.readObject();
+                BrokerList =    (List <List<Object>>) in.readObject();
+
+            }
+
+            //if it is removed
+            else if( servers==3) {
+
+                Portmap.removeAll(tag);
+                out.writeObject(this.Portmap);
+                out.flush();
+
+                Object obj =(List) in.readObject();
+                BrokerList =    (List <List<Object>>) in.readObject();
+
+            }
+            else return;
+        }
+        catch (UnknownHostException unknownHost) {
+            System.err.println("You are trying to connect to an unknown host server!");
+        } catch (IOException ioException) {
+            ioException.printStackTrace();} catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                in.close();
+                out.close();
+                requestSocket.close();
+                ConnectWithBroker();
             } catch (IOException ioException) {
-                ioException.printStackTrace();} catch (ClassNotFoundException e) {
-                e.printStackTrace();
-            } finally {
-                try {
-                    in.close();
-                    out.close();
-                    requestSocket.close();
-                    ConnectWithBroker();
-                } catch (IOException ioException) {
-                    ioException.printStackTrace();
-                }
+                ioException.printStackTrace();
             }
-
         }
 
-       synchronized void ConnectWithBroker(){
+    }
+
+    synchronized void ConnectWithBroker(){
         Socket frombroker=null;
         ObjectOutputStream out=null;
         ObjectInputStream in = null;
@@ -196,9 +223,47 @@ public class Server extends Thread{
                 out = new ObjectOutputStream(frombroker.getOutputStream());
                 in = new ObjectInputStream(frombroker.getInputStream());
                 String tag = (String)in.readObject();
+
+                if(tag.equals("extra")){
+                    //System.out.println("EXTRAEXTRAEXTRAEXTRAEXTRAEXTRAEXTRAEXTRA");
+
+                    String tag2 = (String)in.readObject();
+
+                    if(this.newVideoMap.isEmpty()){
+
+                        out.writeObject("null");
+                        out.flush();
+
+
+                }
+
+                    else {
+
+                        System.out.println("EXTRA VIDEO");
+                        //push(this.VideoMap,tag2,out,in);
+                        push(this.newVideoMap,tag2,out,in);
+                        newVideoMap.clear();
+                                   }
+
+
+
+
+                }
+                else{
                 System.out.println(this.channel.channelName+": client wants "+tag+"'s videos");
-                push(tag,out,in);
+
+
+
+                push(this.VideoMap,tag,out,in);
+
                 System.out.println(this.channel.channelName+": ending push process...");
+                if(this.name=="John") {
+                    System.out.println("AND IM IN CONNECT WITH BROKER "+ this.newVideoMap.size());
+                }
+
+                }
+
+
 
 
 
@@ -219,7 +284,7 @@ public class Server extends Thread{
             }
         }
 
-        }
+    }
 
 
 
@@ -228,22 +293,8 @@ public class Server extends Thread{
         return Portmap;
     }
 
-
-
-
-
-    public void run(){
-
-
-        notifyBrokers(null);
-
-
-    }
-
-
-
     // this method sends to the broker a video with a specific tag or channelname
-     synchronized void push(String tag,ObjectOutputStream objectOutputStream, ObjectInputStream objectInputStream) throws IOException { //pass socket and stream as argument?
+    synchronized void push(HashMap<String, ArrayList<VideoFile>> VideoMap,String tag,ObjectOutputStream objectOutputStream, ObjectInputStream objectInputStream) throws IOException { //pass socket and stream as argument?
 
         //Socket requestSocket=null;
         //ObjectOutputStream objectOutputStream = null;
@@ -263,13 +314,25 @@ public class Server extends Thread{
                             objectOutputStream.flush();
                         }
 
-                        byte[] b = this.channel.getChannelName().toString().getBytes();
+                        String extradata = this.channel.getChannelName() +","+ video.getVideoName();
 
-                        objectOutputStream.writeObject(b);
+                        byte[] b = this.channel.getChannelName().toString().getBytes();
+                        byte[] b1 = extradata.toString().getBytes();
+
+                        objectOutputStream.writeObject(b1);
+                        objectOutputStream.flush();
+
+
+
+
+
 
                     }
                 }
             }
+
+
+
 
             objectOutputStream.flush();
             objectOutputStream.writeObject("end");
@@ -290,6 +353,9 @@ public class Server extends Thread{
 
 
 
+
+
+
         } catch (UnknownHostException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -298,6 +364,22 @@ public class Server extends Thread{
 
 
     }
+
+
+
+
+
+    public void run(){
+
+
+        notifyBrokers(null);
+
+
+    }
+
+
+
+
 
     public static void main(String[] args) {
 
